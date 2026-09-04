@@ -1,0 +1,81 @@
+name: Playwright Tests
+
+# Runs on every push and every pull request targeting the trunk. A suite that only runs on merge
+# reports defects after the review is over, which is the point at which they are most expensive.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# A pipeline still running for a superseded commit burns runner minutes to answer a question
+# nobody is asking any more.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: this job reads the repository and publishes artifacts. It never needs write
+# access to repository contents.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: UI and API suite
+    runs-on: ubuntu-latest
+    # A hung browser must not hold a runner for six hours, which is the platform default.
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Node 22 is the floor declared in package.json engines. Testing on the minimum supported
+      # version is what catches accidental use of a newer runtime API.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # npm ci installs strictly from the lockfile and fails when the lockfile and manifest have
+      # drifted. npm install would silently resolve a different tree than the one that was reviewed.
+      - name: Install dependencies
+        run: npm ci
+
+      # Type gate before any browser starts. A type error is deterministic and takes seconds to
+      # surface, so paying for browser downloads and a full suite first would be wasted time.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # --with-deps also installs the system libraries the engines need, which is exactly what a
+      # bare Ubuntu runner is missing.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      # GitHub Actions sets CI=true automatically. playwright.config.ts keys off it to enable
+      # retries, forbid test.only, fix the worker count and add the GitHub annotations reporter.
+      - name: Run Playwright suite
+        run: npm test
+
+      # always() so the report is published for failing runs too. A red pipeline with no evidence
+      # attached forces every engineer to reproduce the failure locally before they can even start.
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+          if-no-files-found: warn
+
+      # Traces, screenshots and videos. On a green run this directory is empty, which is the
+      # intended outcome and not an error, hence if-no-files-found is ignored.
+      - name: Upload traces and failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 30
+          if-no-files-found: ignore
