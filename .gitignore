@@ -9,7 +9,8 @@ node_modules/
 /playwright/.auth/
 
 # k6 output
-/performance/results/
+/performance/results/*
+!/performance/results/.gitkeep
 
 # Environment
 .env
