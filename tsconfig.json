@@ -28,6 +28,6 @@
       "@data/*": ["./data/*"]
     }
   },
-  "include": ["pages/**/*.ts", "tests/**/*.ts", "data/**/*.ts", "playwright.config.ts"],
+  "include": ["config/**/*.ts", "pages/**/*.ts", "tests/**/*.ts", "data/**/*.ts", "playwright.config.ts"],
   "exclude": ["node_modules", "playwright-report", "test-results"]
 }

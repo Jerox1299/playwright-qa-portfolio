@@ -1,4 +1,5 @@
 import { defineConfig, devices, type ReporterDescription } from '@playwright/test';
+import { env } from './config/env';
 
 /**
  * Playwright configuration - playwright-qa-portfolio
@@ -14,11 +15,11 @@ import { defineConfig, devices, type ReporterDescription } from '@playwright/tes
 const DESKTOP_VIEWPORT = { width: 1440, height: 900 } as const;
 
 /** GitHub Actions (and most CI providers) set CI=true. Used to harden the run. */
-const IS_CI = !!process.env.CI;
+const IS_CI = env.isCI;
 
 /** Environment-driven URLs: the same suite can target dev/staging/prod without code changes. */
-const UI_BASE_URL = process.env.UI_BASE_URL ?? 'https://www.saucedemo.com';
-const API_BASE_URL = process.env.API_BASE_URL ?? 'https://restful-booker.herokuapp.com';
+const UI_BASE_URL = env.uiBaseUrl;
+const API_BASE_URL = env.apiBaseUrl;
 
 /**
  * Reporters:
